@@ -19,6 +19,20 @@ RUN  apt-get update \
      && wget --quiet https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -O /usr/sbin/wait-for-it.sh \
      && chmod +x /usr/sbin/wait-for-it.sh
 
+# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
+# you'll need to launch puppeteer with:
+#     browser.launch({executablePath: 'google-chrome-unstable'})
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
+
 # Install Puppeteer under /node_modules so it's available system-wide
 ADD package.json package-lock.json /
 RUN npm install
+
+# Add user so we don't need --no-sandbox.
+RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+    && mkdir -p /home/pptruser/Downloads \
+    && chown -R pptruser:pptruser /home/pptruser \
+    && chown -R pptruser:pptruser /node_modules
+
+# Run everything after as non-privileged user.
+USER pptruser
